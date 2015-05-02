@@ -1,0 +1,477 @@
+function [] = order_analysis9()
+%ORDER_ANALYSIS5 Summary of this function goes here
+%   Detailed explanation goes here
+%#function TreeBagger
+
+    function [orders] = get_portfolio(type, code)
+        if type == 'B'
+            query = strcat('SELECT code, type, quantity, ltp, id from `test`.`portfolio` where status = "P"  and quantity <> 0 and type = "B" and code = "' , code , '" order by ltp desc;');
+        elseif type == 'S'
+            query = strcat ('SELECT code, type, quantity, ltp, id from `test`.`portfolio` where status = "P"  and quantity <> 0  and type = "S" and code = "' , code , '" order by ltp asc;');
+        end
+        conn = database('test', 'root', 'root', 'com.mysql.jdbc.Driver', 'jdbc:mysql://localhost:3306/test');
+        orders = fetch(conn, query);
+        close(conn);
+    end
+
+    function [predictor] = get_predictor(date)
+        predictor = struct2cell(load(strcat('E:/tree/',date,'.mat'),'tree'));
+        predictor = predictor{1};
+    end
+
+    function [] = write_portfolio(code, type, quantity, ltp, status)
+        conn = database('test', 'root', 'root', 'com.mysql.jdbc.Driver', 'jdbc:mysql://localhost:3306/test');
+        exec(conn, strcat('insert into `portfolio` values("', code , '", "' , type , '", ' , num2str(quantity) , ', "' , status , '", ' , num2str(ltp) , ', 0);'));
+        close(conn);
+    end
+
+    function [] = short_portfolio(id)
+        conn = database('test', 'root', 'root', 'com.mysql.jdbc.Driver', 'jdbc:mysql://localhost:3306/test');
+        exec(conn, strcat('update `portfolio` set status = "E" where id = ' , num2str(id) , ';'));
+        close(conn);
+    end
+
+    function [feat] = get_data(stock)
+        feat = zeros(1,44);
+        data = fileread(strcat('E:\depth\',stock,'.txt'));
+        for i = 2:size(data,2)-3;
+            counter = 1;
+            if data(1,i-1:i+2) == '<t3>'
+                while(data(1,i+counter) ~= '<')
+                    counter = counter + 1;
+                end
+                feat(1,14) = str2double(data(1,i+3:i+counter-1));
+                i = i+counter;
+            elseif data(1,i-1:i+2) == '<t6>'
+                while(data(1,i+counter) ~= '<')
+                    counter = counter + 1;
+                end
+                feat(1,2) = str2num(data(1,i+3:i+counter-1));
+                i = i+counter;
+            elseif data(1,i-1:i+2) == '<t4>'
+                while(data(1,i+counter) ~= '<')
+                    counter = counter + 1;
+                end
+                feat(1,3) = str2double(data(1,i+3:i+counter-1));
+                i = i+counter;
+            elseif data(1,i-1:i+2) == '<t5>'
+                while(data(1,i+counter) ~= '<')
+                    counter = counter + 1;
+                end
+                feat(1,4) = str2double(data(1,i+3:i+counter-1));
+                i = i+counter;
+            elseif data(1,i-1:i+2) == '<t7>'
+                while(data(1,i+counter) ~= '<')
+                    counter = counter + 1;
+                end
+                feat(1,5) = str2double(data(1,i+3:i+counter-1));
+                i = i+counter;
+            elseif data(1,i-1:i+2) == '<t8>'
+                while(data(1,i+counter) ~= '<')
+                    counter = counter + 1;
+                end
+                feat(1,6) = str2double(data(1,i+3:i+counter-1));
+                i = i+counter;
+            elseif data(1,i-1:i+3) == '<t10>'
+                while(data(1,i+counter) ~= '<')
+                    counter = counter + 1;
+                end
+                feat(1,7) = str2double(data(1,i+4:i+counter-1));
+                i = i+counter;
+            elseif data(1,i-1:i+3) == '<t11>'
+                while(data(1,i+counter) ~= '<')
+                    counter = counter + 1;
+                end
+                feat(1,8) = str2double(data(1,i+4:i+counter-1));
+                i = i+counter;
+            elseif data(1,i-1:i+3) == '<t12>'
+                while(data(1,i+counter) ~= '<')
+                    counter = counter + 1;
+                end
+                feat(1,9) = str2double(data(1,i+4:i+counter-1));
+                i = i+counter;
+            elseif data(1,i-1:i+3) == '<t19>'
+                while(data(1,i+counter) ~= '<')
+                    counter = counter + 1;
+                end
+                feat(1,10) = str2num(data(1,i+4:i+counter-1));
+                i = i+counter;
+            elseif data(1,i-1:i+3) == '<t20>'
+                while(data(1,i+counter) ~= '<')
+                    counter = counter + 1;
+                end
+                feat(1,11) = str2num(data(1,i+4:i+counter-1));
+                i = i+counter;
+            elseif data(1,i-1:i+3) == '<t13>'
+                while(data(1,i+counter) ~= '<')
+                    counter = counter + 1;
+                end
+                feat(1,12) = str2num(data(1,i+4:i+counter-1));
+                i = i+counter;
+            elseif data(1,i-1:i+3) == '<t17>'
+                while(data(1,i+counter) ~= '<')
+                    counter = counter + 1;
+                end
+                feat(1,13) = str2double(data(1,i+4:i+counter-1));
+                i = i+counter;
+            elseif data(1,i-1:i+3) == '<t14>'
+                while(data(1,i+counter) ~= '<')
+                    counter = counter + 1;
+                end
+                feat(1,1) = second(data(1,i+4:i+counter-1)) + 60 * minute(data(1,i+4:i+counter-1)) + 3600 * hour(data(1,i+4:i+counter-1));
+                i = i+counter;
+            elseif data(1,i-1:i+3) == '<t25>'
+                while(data(1,i+counter) ~= '<')
+                    counter = counter + 1;
+                end
+                feat(1,15) = str2num(data(1,i+4:i+counter-1));
+                i = i+counter;
+            elseif data(1,i-1:i+3) == '<t26>'
+                while(data(1,i+counter) ~= '<')
+                    counter = counter + 1;
+                end
+                feat(1,16) = str2num(data(1,i+4:i+counter-1));
+                i = i+counter;
+            elseif data(1,i-1:i+3) == '<t27>'
+                while(data(1,i+counter) ~= '<')
+                    counter = counter + 1;
+                end
+                feat(1,17) = str2num(data(1,i+4:i+counter-1));
+                i = i+counter;
+            elseif data(1,i-1:i+3) == '<t28>'
+                while(data(1,i+counter) ~= '<')
+                    counter = counter + 1;
+                end
+                feat(1,18) =str2num(data(1,i+4:i+counter-1));
+                i = i+counter;
+            elseif data(1,i-1:i+3) == '<t29>'
+                while(data(1,i+counter) ~= '<')
+                    counter = counter + 1;
+                end
+                feat(1,19) = str2num(data(1,i+4:i+counter-1));
+                i = i+counter;
+            elseif data(1,i-1:i+3) == '<t30>'
+                while(data(1,i+counter) ~= '<')
+                    counter = counter + 1;
+                end
+                feat(1,20) = str2num(data(1,i+4:i+counter-1));
+                i = i+counter;
+            elseif data(1,i-1:i+3) == '<t31>'
+                while(data(1,i+counter) ~= '<')
+                    counter = counter + 1;
+                end
+                feat(1,21) = str2num(data(1,i+4:i+counter-1));
+                i = i+counter;
+            elseif data(1,i-1:i+3) == '<t32>'
+                while(data(1,i+counter) ~= '<')
+                    counter = counter + 1;
+                end
+                feat(1,22) = str2num(data(1,i+4:i+counter-1));
+                i = i+counter;
+            elseif data(1,i-1:i+3) == '<t33>'
+                while(data(1,i+counter) ~= '<')
+                    counter = counter + 1;
+                end
+                feat(1,23) = str2num(data(1,i+4:i+counter-1));
+                i = i+counter;
+            elseif data(1,i-1:i+3) == '<t34>'
+                while(data(1,i+counter) ~= '<')
+                    counter = counter + 1;
+                end
+                feat(1,24) = str2num(data(1,i+4:i+counter-1));
+                i = i+counter;
+            elseif data(1,i-1:i+3) == '<t35>'
+                while(data(1,i+counter) ~= '<')
+                    counter = counter + 1;
+                end
+                feat(1,25) = str2double(data(1,i+4:i+counter-1));
+                i = i+counter;
+            elseif data(1,i-1:i+3) == '<t36>'
+                while(data(1,i+counter) ~= '<')
+                    counter = counter + 1;
+                end
+                feat(1,26) = str2double(data(1,i+4:i+counter-1));
+                i = i+counter;
+            elseif data(1,i-1:i+3) == '<t37>'
+                while(data(1,i+counter) ~= '<')
+                    counter = counter + 1;
+                end
+                feat(1,27) = str2double(data(1,i+4:i+counter-1));
+                i = i+counter;
+            elseif data(1,i-1:i+3) == '<t38>'
+                while(data(1,i+counter) ~= '<')
+                    counter = counter + 1;
+                end
+                feat(1,28) = str2double(data(1,i+4:i+counter-1));
+                i = i+counter;
+            elseif data(1,i-1:i+3) == '<t39>'
+                while(data(1,i+counter) ~= '<')
+                    counter = counter + 1;
+                end
+                feat(1,29) = str2double(data(1,i+4:i+counter-1));
+                i = i+counter;
+            elseif data(1,i-1:i+3) == '<t40>'
+                while(data(1,i+counter) ~= '<')
+                    counter = counter + 1;
+                end
+                feat(1,30) = str2num(data(1,i+4:i+counter-1));
+                i = i+counter;
+            elseif data(1,i-1:i+3) == '<t41>'
+                while(data(1,i+counter) ~= '<')
+                    counter = counter + 1;
+                end
+                feat(1,31) = str2double(data(1,i+4:i+counter-1));
+                i = i+counter;
+            elseif data(1,i-1:i+3) == '<t42>'
+                while(data(1,i+counter) ~= '<')
+                    counter = counter + 1;
+                end
+                feat(1,32) = str2double(data(1,i+4:i+counter-1));
+                i = i+counter;
+            elseif data(1,i-1:i+3) == '<t43>'
+                while(data(1,i+counter) ~= '<')
+                    counter = counter + 1;
+                end
+                feat(1,33) = str2double(data(1,i+4:i+counter-1));
+                i = i+counter;
+            elseif data(1,i-1:i+3) == '<t44>'
+                while(data(1,i+counter) ~= '<')
+                    counter = counter + 1;
+                end
+                feat(1,34) = str2double(data(1,i+4:i+counter-1));
+                i = i+counter;
+            elseif data(1,i-1:i+3) == '<t45>'
+                while(data(1,i+counter) ~= '<')
+                    counter = counter + 1;
+                end
+                feat(1,35) = str2double(data(1,i+4:i+counter-1));
+                i = i+counter;
+            elseif data(1,i-1:i+3) == '<t46>'
+                while(data(1,i+counter) ~= '<')
+                    counter = counter + 1;
+                end
+                feat(1,36) = str2double(data(1,i+4:i+counter-1));
+                i = i+counter;
+            elseif data(1,i-1:i+3) == '<t47>'
+                while(data(1,i+counter) ~= '<')
+                    counter = counter + 1;
+                end
+                feat(1,37) = str2double(data(1,i+4:i+counter-1));
+                i = i+counter;
+            elseif data(1,i-1:i+3) == '<t48>'
+                while(data(1,i+counter) ~= '<')
+                    counter = counter + 1;
+                end
+                feat(1,38) = str2double(data(1,i+4:i+counter-1));
+                i = i+counter;
+            elseif data(1,i-1:i+3) == '<t49>'
+                while(data(1,i+counter) ~= '<')
+                    counter = counter + 1;
+                end
+                feat(1,39) = str2double(data(1,i+4:i+counter-1));
+                i = i+counter;
+            elseif data(1,i-1:i+3) == '<t50>'
+                while(data(1,i+counter) ~= '<')
+                    counter = counter + 1;
+                end
+                feat(1,40) = str2double(data(1,i+4:i+counter-1));
+                i = i+counter;
+            elseif data(1,i-1:i+3) == '<t51>'
+                while(data(1,i+counter) ~= '<')
+                    counter = counter + 1;
+                end
+                feat(1,41) = str2double(data(1,i+4:i+counter-1));
+                i = i+counter;
+            elseif data(1,i-1:i+3) == '<t52>'
+                while(data(1,i+counter) ~= '<')
+                    counter = counter + 1;
+                end
+                feat(1,42) = str2double(data(1,i+4:i+counter-1));
+                i = i+counter;
+            elseif data(1,i-1:i+3) == '<t53>'
+                while(data(1,i+counter) ~= '<')
+                    counter = counter + 1;
+                end
+                feat(1,43) = str2double(data(1,i+4:i+counter-1));
+                i = i+counter;
+            elseif data(1,i-1:i+3) == '<t54>'
+                while(data(1,i+counter) ~= '<')
+                    counter = counter + 1;
+                end
+                feat(1,44) = str2double(data(1,i+4:i+counter-1));
+                i = i+counter;
+            end
+        end
+    end
+
+    function [type,price,timer] = return_prediction(model1, feat)
+        price = feat(1,14);
+        timer = feat(1,1);
+        d1 = predict(model1,feat);
+        if ~isempty(feat);
+            if d1{1} == '66';
+                type = 'B';
+            elseif d1{1} == '83';
+                type = 'S';
+            else
+                type = 'X';
+            end
+        end
+    end
+
+    function[] = place_order(stock, type, qty)
+        arg = strcat('afterhour=N^&s=' , stock , '^&ex=NSE^&b=' , type , '^&qty=' , num2str(qty) , '^&price=0');
+        system(sprintf('C:/Users/zxingz/Desktop/ShareKhan/place_oder/Debug/place_oder.exe %s', arg));
+    end
+
+stock={'ADANIENT'};
+stock=[stock;{'ADANIPORTS'}];
+stock=[stock;{'AMBUJACEM'}];
+stock=[stock;{'APOLLOTYRE'}];
+stock=[stock;{'ARVIND'}];
+stock=[stock;{'AXISBANK'}];
+stock=[stock;{'BANKINDIA'}];
+stock=[stock;{'BHARTIARTL'}];
+stock=[stock;{'BHEL'}];
+stock=[stock;{'BIOCON'}];
+stock=[stock;{'CANBK'}];
+stock=[stock;{'COALINDIA'}];
+stock=[stock;{'DABUR'}];
+stock=[stock;{'DLF'}];
+stock=[stock;{'EXIDEIND'}];
+stock=[stock;{'GAIL'}];
+stock=[stock;{'GODREJIND'}];
+stock=[stock;{'HAVELLS'}];
+stock=[stock;{'HEXAWARE'}];
+stock=[stock;{'ICICIBANK'}];
+stock=[stock;{'IDEA'}];
+stock=[stock;{'IDFC'}];
+stock=[stock;{'IGL'}];
+stock=[stock;{'INDIACEM'}];
+stock=[stock;{'IOC'}];
+stock=[stock;{'IRB'}];
+stock=[stock;{'ITC'}];
+stock=[stock;{'JSWENERGY'}];
+stock=[stock;{'KTKBANK'}];
+stock=[stock;{'LICHSGFIN'}];
+stock=[stock;{'ONGC'}];
+stock=[stock;{'ORIENTBANK'}];
+stock=[stock;{'PETRONET'}];
+stock=[stock;{'PFC'}];
+stock=[stock;{'POWERGRID'}];
+stock=[stock;{'RECLTD'}];
+stock=[stock;{'RELCAPITAL'}];
+stock=[stock;{'RELINFRA'}];
+stock=[stock;{'SBIN'}];
+stock=[stock;{'SUNTV'}];
+stock=[stock;{'TATACHEM'}];
+stock=[stock;{'TATACOMM'}];
+stock=[stock;{'TATAMOTORS'}];
+stock=[stock;{'TATAMTRDVR'}];
+stock=[stock;{'TATASTEEL'}];
+stock=[stock;{'TITAN'}];
+stock=[stock;{'UNIONBANK'}];
+stock=[stock;{'UPL'}];
+stock=[stock;{'VOLTAS'}];
+stock=[stock;{'ZEEL'}];
+
+order_limit = 3;
+
+stock = stock{input(' enter the code id: '),1}
+
+model1 = get_predictor(input(' enter the static predictor name: ', 's'));
+
+buy_orders = get_portfolio('B',stock);
+sell_orders = get_portfolio('S',stock);
+
+while 1
+    if isempty(buy_orders);
+        b_min = 99999;
+        b_avg = 99999;
+        b_qty = 0;
+        b_counter = 0;
+    else
+        matr1 = [buy_orders{:,4}];
+        b_min = min(matr1);
+        matr2 = [buy_orders{:,3}];
+        b_qty = sum(matr2);
+        b_avg = (sum(matr1 .* matr2))/b_qty;
+        b_counter = size(buy_orders,1);
+    end
+    
+    if isempty(sell_orders);
+        s_max = -1;
+        s_avg = -1;
+        s_qty = 0;
+        s_counter = 0;
+    else
+        matr1 = [sell_orders{:,4}];
+        s_max = max(matr1);
+        matr2 = [sell_orders{:,3}];
+        s_qty = sum(matr2);
+        s_avg = (sum(matr1 .* matr2))/s_qty;
+        s_counter = size(sell_orders,1);
+    end
+    
+    %[timer, power] = system('C:\Users\zxingz\Desktop\ShareKhan\get_money\Debug\get_money.exe');
+    %     power = 10 * str2double(power);
+    power = 30000;
+    [type,price,timer] = return_prediction(model1, get_data(stock));
+    if price >= 90 & timer ~= 0;
+        q_flag = round(27 * sin((pi * (timer-32541))/17859));
+        if type == 'B' & b_counter < order_limit;
+            if s_qty ~= 0 & s_avg > 0.6 + price;
+                place_order(stock, 'BM', s_qty);
+                for row = 1:s_counter;
+                    short_portfolio(sell_orders{row,5});
+                end
+                write_portfolio(stock, 'B', s_qty, price, 'E');
+                buy_orders = get_portfolio('B',stock);
+                sell_orders = get_portfolio('S',stock);
+            elseif power - (price * q_flag) > 0 & price <= b_min - 0.9 & timer > 33420 & timer < 50200;
+                place_order(stock, 'BM', q_flag);
+                write_portfolio(stock, 'B', q_flag, price, 'P');
+                buy_orders = get_portfolio('B',stock);
+                sell_orders = get_portfolio('S',stock);
+            end
+        elseif type == 'S' & s_counter < order_limit;
+            if b_qty ~= 0 & b_avg < price - 0.6;
+                place_order(stock, 'SM', b_qty);
+                for row = 1:b_counter;
+                    short_portfolio(buy_orders{row,5});
+                end
+                write_portfolio(stock, 'S', b_qty, price, 'E');
+                buy_orders = get_portfolio('B',stock);
+                sell_orders = get_portfolio('S',stock);
+            elseif power - (price * q_flag) > 0 & price >= s_max + 0.9 & timer > 33420 & timer < 50200 ;
+                place_order(stock, 'SM', q_flag);
+                write_portfolio(stock, 'S', q_flag, price, 'P');
+                buy_orders = get_portfolio('B',stock);
+                sell_orders = get_portfolio('S',stock);
+            end
+        else
+            if s_qty ~= 0 & s_avg > 0.6 + price;
+                place_order(stock, 'BM', s_qty);
+                for row = 1:s_counter;
+                    short_portfolio(sell_orders{row,5});
+                end
+                write_portfolio(stock, 'B', s_qty, price, 'E');
+                buy_orders = get_portfolio('B',stock);
+                sell_orders = get_portfolio('S',stock);
+            elseif b_qty ~= 0 & b_avg < price - 0.6;
+                place_order(stock, 'SM', b_qty);
+                for row = 1:b_counter;
+                    short_portfolio(buy_orders{row,5});
+                end
+                write_portfolio(stock, 'S', b_qty, price, 'E');
+                buy_orders = get_portfolio('B',stock);
+                sell_orders = get_portfolio('S',stock);
+            end
+        end
+    end
+    if timer >54000;
+        break;
+    end
+end
+end
+
