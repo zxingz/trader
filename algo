@@ -1,0 +1,101 @@
+function [] = algo()
+%ALGO Summary of this function goes here
+%   Detailed explanation goes here
+
+code={'ADANIPORTS'};
+code=[code;{'CANBK'}];
+code=[code;{'DABUR'}];
+code=[code;{'HAVELLS'}];
+code=[code;{'ADANIENT'}];
+code=[code;{'AMBUJACEM'}];
+code=[code;{'APOLLOTYRE'}];
+code=[code;{'ARVIND'}];
+code=[code;{'AXISBANK'}];
+code=[code;{'BANKINDIA'}];
+code=[code;{'BHARTIARTL'}];
+code=[code;{'BHEL'}];
+code=[code;{'BIOCON'}];
+code=[code;{'COALINDIA'}];
+code=[code;{'DLF'}];
+code=[code;{'EXIDEIND'}];
+code=[code;{'GAIL'}];
+code=[code;{'GODREJIND'}];
+code=[code;{'HEXAWARE'}];
+code=[code;{'ICICIBANK'}];
+code=[code;{'IDEA'}];
+code=[code;{'IDFC'}];
+code=[code;{'IGL'}];
+code=[code;{'INDIACEM'}];
+code=[code;{'IOC'}];
+code=[code;{'IRB'}];
+code=[code;{'ITC'}];
+code=[code;{'JSWENERGY'}];
+code=[code;{'KTKBANK'}];
+code=[code;{'LICHSGFIN'}];
+code=[code;{'ONGC'}];
+code=[code;{'ORIENTBANK'}];
+code=[code;{'PETRONET'}];
+code=[code;{'PFC'}];
+code=[code;{'POWERGRID'}];
+code=[code;{'RECLTD'}];
+code=[code;{'RELCAPITAL'}];
+code=[code;{'RELINFRA'}];
+code=[code;{'SBIN'}];
+code=[code;{'SUNTV'}];
+code=[code;{'TATACHEM'}];
+code=[code;{'TATACOMM'}];
+code=[code;{'TATAMOTORS'}];
+code=[code;{'TATAMTRDVR'}];
+code=[code;{'TATASTEEL'}];
+code=[code;{'TITAN'}];
+code=[code;{'UNIONBANK'}];
+code=[code;{'UPL'}];
+code=[code;{'VOLTAS'}];
+code=[code;{'ZEEL'}];
+
+update_point = input(' enter the code id to start from (def == 1) : ');
+date = input(' enter the day and month seperated by "_" : ', 's');
+
+% try
+%     models = struct2cell(load(strcat('E:/tree/',date,'.mat'), 'models'));
+% catch
+% end
+
+conn = database('test', 'root', 'root', 'com.mysql.jdbc.Driver', 'jdbc:mysql://localhost:3306/test');
+options = statset('UseParallel', 'Always');
+for stock = update_point:50
+  query = strcat('select * from `test`.`stock` where code = "' ,code(stock),'" and high <> 0 and low <> 0 order by date asc,code asc;');   
+  data = fetch(conn, query{1});
+  data_size = size(data,1);
+  feat = zeros(data_size,44);
+  out = [];
+  out(1,1) = 'X';
+  time_list = second(data(:,1)) + 60 * minute(data(:,1)) + 3600 * hour(data(:,1));
+  ltp_list = cell2mat(data(:,14));
+  for loops = 1: data_size;  
+      feat(loops,1) = time_list(loops);
+      feat(loops,2:44) = cell2mat(data(loops,2:44));
+      out_indx = loops + 1;
+      out(loops,1) = 'X';
+      while out_indx < data_size && time_list(out_indx) - time_list(loops) >= 0 && time_list(out_indx) - time_list(loops) < 90;
+          out_indx = out_indx + 1;
+          if ltp_list(out_indx) - ltp_list(loops) > 0.6;
+              out(loops,1) = 'B';
+              break
+          elseif ltp_list(loops) - ltp_list(out_indx) > 0.6
+              out(loops,1) = 'S';
+              break
+          end
+      end
+  end
+  display(code(stock))
+%   size(feat,1)
+%   size(out,1)
+  tree = TreeBagger(ceil(0.001 * data_size),feat,out,'Options',options);
+%   models{stock,1} = tree;
+   models = strcat('C:/tree/',date,'_',code(stock),'.mat');
+  save(models{1}, 'tree');
+end
+close(conn);
+end
+
