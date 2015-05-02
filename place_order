@@ -1,0 +1,74 @@
+// get_data.cpp : Defines the entry point for the console application.
+//
+
+
+#include "stdafx.h"
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <curl/curl.h> 
+
+
+
+using namespace std;
+//bool stage = FALSE;
+//string data = "" , output = "";
+//int indx = -1,retval = 0;
+
+static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp)
+{
+/*	if (stage){
+		data = (char*)contents;
+		indx = data.find("Order ID");
+		if (indx != -1){
+			data = data.substr(indx);
+			indx = data.find("<");
+			retval = data.find(">&") + 7;
+			output = data.substr(retval, indx-retval+1);			
+			retval = stoi(output);
+		}
+	}
+		
+	*/
+	return size * nmemb;
+
+}
+
+/*int place(string fields){
+
+	
+	return 0;
+}*/
+
+int main(int argc, char* argv[] )
+{  
+	string fields= argv[1];
+	//string fields = "afterhour=Y&s=CANBK&ex=NSE&b=BM&qty=1&price=350";
+	//place(fields);
+	CURL *curl;
+	curl = curl_easy_init();
+	if (curl) {
+		curl_easy_setopt(curl, CURLOPT_COOKIEFILE, "E:/COOKIES.txt");
+		curl_easy_setopt(curl, CURLOPT_URL, "https://newtrade.sharekhan.com/rmmweb/mcs.sk?e=352&b=BM&t=0&s0=IDFC&ex0=NSE");
+		curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+
+		curl_easy_perform(curl);
+
+		curl_easy_setopt(curl, CURLOPT_URL, "https://newtrade.sharekhan.com/rmmweb/mcs.sk");
+		string cook = "e=352&flag=1&request_code=NEW&" + fields + "&trigger_price=0&disclosed_qty=0&validity=GFD&dp_id=21529373";
+		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, cook.c_str());
+		curl_easy_perform(curl);
+
+		//stage = TRUE;
+		curl_easy_setopt(curl, CURLOPT_URL, "https://newtrade.sharekhan.com/rmmweb/mcs.sk?e=352");
+		cook = "e=352&flag=2&request_code=NEW&" + fields + "&trigger_price=0&disclosed_qty=0&validity=GFD&dp_id=21529373";
+		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, cook.c_str());
+		curl_easy_perform(curl);
+
+		curl_easy_cleanup(curl);
+	}
+	//cout << output;
+
+	return 0;
+}
